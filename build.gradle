@@ -1,0 +1,127 @@
+/**
+	Definición estándar de un proyecto Java - Gradle
+	Preparó: Óscar Duván Flórez Ricardo
+	Empresa: Tech and Solve S.A.S
+	Descripción:
+		El siguiente proyecto corresponde con una línea base SUGERIDA para trabajar con proyectos de tipo JAVA-GRADLE, en ningún momento debe entenderse como una guía definitiva, sin embargo hay aspectos generales que pueden servirle de plantilla inicial para su desarrollo. Por tanto, sientase libre de utilizarlos como bien determine.
+**/
+
+apply plugin: 'war'
+apply plugin: 'eclipse'
+apply plugin: 'eclipse-wtp'
+apply plugin: 'jacoco'
+
+sourceCompatibility = 1.8
+version = '1.0'
+group = 'co.com.contact'
+
+repositories {
+	jcenter()
+}
+
+dependencies {
+	   
+	/*
+		/////////////////////////////////////////////////////////////////////////
+		//Para trabajar con TestNG se define la siguiente dependencia adicional//
+		/////////////////////////////////////////////////////////////////////////
+        
+        testCompile 'org.testng:testng:+'
+		testCompile group: 'info.cukes', name: 'cucumber-testng', version: '+'
+		    	
+    */
+	
+    testCompile group: 'info.cukes', name: 'cucumber-java', version: '+'
+    testCompile group: 'info.cukes', name: 'cucumber-junit', version: '+'
+    testCompile group: 'org.seleniumhq.selenium', name: 'selenium-server', version: '+'
+}
+
+/*	
+
+	/////////////////////////////////////////////////////////////////////////////////
+	//En caso de generar pruebas a partir de TestNG, se complementa el build.gradle//
+	//con la siguiente instrucción:                                                //
+	/////////////////////////////////////////////////////////////////////////////////
+	
+	test{
+		
+		useTestNG() {
+		useDefaultListeners = true
+			suiteXmlFiles >> new File("src/test/resources/testng.xml")
+		}
+	}
+	
+*/
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//La siguiente definición de test corresponde al hecho de que todas las pruebas involucradas hagan parte//
+//del mismo proyecto de desarrollo, sin embargo, puede suceder que las pruebas de aceptación funcional, //
+//pruebas de integración y demás correspondan con proyectos independientes.                             //  
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+test {
+    exclude '**/acceptTest/**'
+    exclude '**/integrationTest/**'
+}
+
+task integrationTest(type:Test) {
+	exclude '**/unitTest/**'
+	exclude '**/acceptTest/**'
+	include '**/integrationTest/**'
+}
+
+task acceptTest(type: Test) {
+	/*mustRunAfter 'deploy*/
+	exclude '**/unitTest/**'
+	exclude '**/integrationTest/**'
+	include '**/acceptTest/**'
+}
+
+//////////////////////////////////////////////////
+//Definición de JACOCO para reporte de cobertura//
+//////////////////////////////////////////////////
+
+jacoco {
+    toolVersion = "0.7.6.201602180812"
+    reportsDir = file("$buildDir/customJacocoReportDir")
+}
+
+test {
+	reports.junitXml.destination="build/test-results"
+    jacoco {
+        append = false
+        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
+        classDumpFile = file("$buildDir/jacoco/classpathdumps")
+    }
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled false
+        csv.enabled false
+        html.destination "${buildDir}/jacocoHtml"
+    }
+}
+
+uploadArchives {
+    repositories {
+       flatDir {
+           dirs 'repos'
+       }
+    }
+}
+
+
+war {
+	exclude('**/node_modules')
+	exclude('**/src')
+	exclude('**/package.json')
+	exclude('**/webpack.config.js')
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//Definición de url generica por ambiente,el valor por defecto ha sido                 //
+//configurado en el archivo gradle.properties, con el nombre de la variable urlEnvTest //
+/////////////////////////////////////////////////////////////////////////////////////////
+
+tasks.withType(Test) { systemProperty 'urlEnvTest', System.getProperty('urlEnvTest', urlEnvTest )}
